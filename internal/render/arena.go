@@ -3,7 +3,7 @@ package render
 import (
 	"math"
 
-	"vibetron/internal/sim"
+	"github.com/LeandroMAcosta/vibetron/internal/sim"
 )
 
 // deathTicks is how long a dead rider's leftover trail takes to sink to dim.

@@ -2,16 +2,25 @@
 
 Arena de estelas de neón para la terminal. Hasta 6 jugadores en la misma red Wi-Fi: uno crea la sala, comparte un código de 7 letras y el resto se une. Los lugares vacíos los ocupan bots.
 
+## Instalar
+
+Con Go 1.27 o más nuevo:
+
+```sh
+go install github.com/LeandroMAcosta/vibetron/cmd/vibetron@latest
+```
+
+Queda en `~/go/bin/vibetron`. Si ese directorio no está en tu `PATH`, corré `~/go/bin/vibetron`.
+
 ## Jugar
 
 ```sh
-go build -o vibetron ./cmd/vibetron
-./vibetron                    # menú
-./vibetron --solo             # vos contra 3 bots
-./vibetron --host             # crear sala y mostrar el código
-./vibetron --join NG8-05A0    # unirse con un código
-./vibetron --demo             # todos son bots, para mirar
-./vibetron --name ANA         # elegir tu nombre (máx. 10 letras)
+vibetron                    # menú
+vibetron --solo             # vos contra 3 bots
+vibetron --host             # crear sala y mostrar el código
+vibetron --join NG8-05A0    # unirse con un código
+vibetron --demo             # todos son bots, para mirar
+vibetron --name ANA         # elegir tu nombre (máx. 10 letras)
 ```
 
 Los menús piden una terminal de al menos **100×32**. Durante la partida alcanza con el tamaño de la arena que eligió el anfitrión (de 60×21 a 140×44). Conviene color verdadero (iTerm2, WezTerm, Kitty, Ghostty, Windows Terminal); en terminales de 256 colores también anda.

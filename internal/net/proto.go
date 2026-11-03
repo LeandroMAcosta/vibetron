@@ -8,7 +8,7 @@ import (
 	"errors"
 	"io"
 
-	"vibetron/internal/sim"
+	"github.com/LeandroMAcosta/vibetron/internal/sim"
 )
 
 const (

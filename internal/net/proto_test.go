@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"vibetron/internal/sim"
+	"github.com/LeandroMAcosta/vibetron/internal/sim"
 )
 
 func TestMsgRoundTrip(t *testing.T) {

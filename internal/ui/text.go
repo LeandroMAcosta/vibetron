@@ -5,7 +5,7 @@ import (
 	"math"
 	"strings"
 
-	"vibetron/internal/render"
+	"github.com/LeandroMAcosta/vibetron/internal/render"
 )
 
 var (

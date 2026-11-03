@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"vibetron/internal/sim"
+	"github.com/LeandroMAcosta/vibetron/internal/sim"
 )
 
 const (

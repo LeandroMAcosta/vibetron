@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"vibetron/internal/sim"
+	"github.com/LeandroMAcosta/vibetron/internal/sim"
 )
 
 type randomBrain struct{ rng *rand.Rand }

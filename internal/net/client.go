@@ -11,7 +11,7 @@ import (
 	"time"
 	"unicode"
 
-	"vibetron/internal/sim"
+	"github.com/LeandroMAcosta/vibetron/internal/sim"
 )
 
 const dialTimeout = 3 * time.Second

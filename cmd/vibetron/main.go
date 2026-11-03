@@ -7,8 +7,8 @@ import (
 	"os/user"
 	"strings"
 
-	"vibetron/internal/net"
-	"vibetron/internal/ui"
+	"github.com/LeandroMAcosta/vibetron/internal/net"
+	"github.com/LeandroMAcosta/vibetron/internal/ui"
 )
 
 func main() {

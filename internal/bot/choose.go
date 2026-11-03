@@ -1,6 +1,6 @@
 package bot
 
-import "vibetron/internal/sim"
+import "github.com/LeandroMAcosta/vibetron/internal/sim"
 
 const unsafe = -1
 

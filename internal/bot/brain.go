@@ -3,7 +3,7 @@
 // personality.
 package bot
 
-import "vibetron/internal/sim"
+import "github.com/LeandroMAcosta/vibetron/internal/sim"
 
 // Personality knobs, all drawn from the seed in New.
 type traits struct {

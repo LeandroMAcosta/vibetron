@@ -3,7 +3,7 @@ package bot
 import (
 	"testing"
 
-	"vibetron/internal/sim"
+	"github.com/LeandroMAcosta/vibetron/internal/sim"
 )
 
 // arena returns a running two-player state with an empty grid and the

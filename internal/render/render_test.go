@@ -3,8 +3,8 @@ package render
 import (
 	"testing"
 
+	"github.com/LeandroMAcosta/vibetron/internal/sim"
 	"github.com/gdamore/tcell/v2"
-	"vibetron/internal/sim"
 )
 
 func simScreen(t testing.TB, w, h int) tcell.SimulationScreen {

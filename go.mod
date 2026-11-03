@@ -1,4 +1,4 @@
-module vibetron
+module github.com/LeandroMAcosta/vibetron
 
 go 1.27.3
 

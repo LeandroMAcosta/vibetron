@@ -7,10 +7,10 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
-	"vibetron/internal/bot"
-	"vibetron/internal/net"
-	"vibetron/internal/render"
-	"vibetron/internal/sim"
+	"github.com/LeandroMAcosta/vibetron/internal/bot"
+	"github.com/LeandroMAcosta/vibetron/internal/net"
+	"github.com/LeandroMAcosta/vibetron/internal/render"
+	"github.com/LeandroMAcosta/vibetron/internal/sim"
 )
 
 const (
