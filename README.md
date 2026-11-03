@@ -14,7 +14,7 @@ go build -o estela ./cmd/estela
 ./estela --name ANA         # elegir tu nombre (máx. 10 letras)
 ```
 
-La terminal tiene que medir al menos **100×32** y conviene que tenga color verdadero (iTerm2, WezTerm, Kitty, Ghostty, Windows Terminal). En terminales de 256 colores también anda.
+Los menús piden una terminal de al menos **100×32**. Durante la partida alcanza con el tamaño de la arena que eligió el anfitrión (de 60×21 a 140×44). Conviene color verdadero (iTerm2, WezTerm, Kitty, Ghostty, Windows Terminal); en terminales de 256 colores también anda.
 
 ## Controles
 
@@ -25,13 +25,24 @@ La terminal tiene que medir al menos **100×32** y conviene que tenga color verd
 | J, X o Enter | Salto: 3 casillas sin dejar estela y pasando por encima de otras. Se recarga en 4 s |
 | Esc o Q | Salir de la partida |
 
-En la sala, el anfitrión usa **+/-** para sumar o sacar bots y **Enter** para empezar.
+En la sala, el anfitrión elige:
+
+| Tecla | Qué cambia |
+| --- | --- |
+| T | Tamaño de la arena: Chica 60×34, Mediana 70×40, Grande 100×56, Enorme 140×80 |
+| V | Velocidad: Tranqui (10 pasos/s), Normal (15), Rápida (20), Furiosa (25) |
+| + / - | Sumar o sacar bots |
+| Enter | Empezar |
+
+Todos ven en la sala qué arena se eligió y si su terminal alcanza.
 
 ## Reglas
 
 - Chocar contra una pared o una estela te elimina. Dos cabezas que chocan de frente quedan las dos afuera.
-- Las **chispas** que aparecen en la arena te llenan el impulso y te recargan el salto.
-- A los 30 segundos empieza el **colapso**: el borde se cierra un anillo cada 2 segundos.
+- La estela mide **70 casillas**: la cola se apaga y se borra mientras avanzás.
+- Las **chispas** que aparecen en la arena alargan tu estela 25 casillas, te llenan el impulso y te recargan el salto.
+- Al morir, tu estela se recoge desde la cola y libera espacio.
+- Al minuto empieza la **muerte súbita**: las estelas dejan de achicarse hasta que quede uno.
 - Gana la ronda el último que queda en pie. Gana la partida el primero en llegar a 5 rondas.
 
 ## Jugar en red

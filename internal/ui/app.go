@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	MinCols = sim.W
-	MinRows = (sim.H + render.HUDHeight) / 2
+	// Menus need room for their text; a match needs its arena (see minSize).
+	MinCols = 100
+	MinRows = 32
 	fps     = 60
 )
 
@@ -116,8 +117,12 @@ func (a *App) draw(scene Scene) {
 	if a.frame == nil || a.frame.W != cols || a.frame.H != rows*2 {
 		a.frame = render.NewFrame(cols, rows*2)
 	}
-	if cols < MinCols || rows < MinRows {
-		drawTooSmall(a, a.frame, cols, rows)
+	needCols, needRows := MinCols, MinRows
+	if s, ok := scene.(interface{ minSize() (int, int) }); ok {
+		needCols, needRows = s.minSize()
+	}
+	if cols < needCols || rows < needRows {
+		drawTooSmall(a, a.frame, cols, rows, needCols, needRows)
 	} else {
 		scene.Draw(a, a.frame)
 	}

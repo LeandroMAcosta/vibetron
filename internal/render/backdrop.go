@@ -216,3 +216,10 @@ func Title(f *Frame, cx, y int, t float64) {
 func lit(f *Frame, x, y int) bool {
 	return uint(x) < uint(f.W) && uint(y) < uint(f.H) && f.Pix[y*f.W+x].R != 0
 }
+
+func abs(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
+}

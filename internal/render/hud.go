@@ -6,14 +6,16 @@ import "estela/internal/sim"
 // accent marks (Á in ÁMBAR), five of text and one for the boost bar.
 const HUDHeight = 8
 
-var hudBg = RGB{6, 4, 16}
+// chipMinSlot is the narrowest slot that still fits the jump chip next to
+// two initials; narrower slots show jump-ready by lighting the name.
+const chipMinSlot = 14
 
 // DrawHUD draws one slot per player across w pixels: a jump-ready chip,
 // the name, win pips and a boost bar. Players out of the round are dimmed.
 func DrawHUD(f *Frame, x, y, w int, s *sim.State, names []string) {
 	for yy := y; yy < y+HUDHeight; yy++ {
 		for xx := x; xx < x+w; xx++ {
-			f.Set(xx, yy, hudBg)
+			f.Set(xx, yy, bgColor)
 		}
 	}
 	n := int(s.Count)
@@ -24,28 +26,36 @@ func DrawHUD(f *Frame, x, y, w int, s *sim.State, names []string) {
 	for i := 0; i < n; i++ {
 		p := &s.Players[i]
 		pal := Players[i]
-		dim := 256
+		core, mid, off := pal.Core, pal.Mid, mix(pal.Mid, dimColor, 200)
 		if !p.Alive {
-			dim = 90
+			core, mid = mix(core, dimColor, 190), mix(mid, dimColor, 190)
 		}
-		core, mid, glow := scale(pal.Core, dim), scale(pal.Mid, dim), scale(pal.Glow, dim)
 		sx, ty := x+i*slot, y+2
 
-		ready := 1 - float64(p.JumpCooldown)/sim.JumpCooldown
-		lit := int(ready * 5)
-		for r := 0; r < 5; r++ {
-			c := glow
-			switch {
-			case ready >= 1:
-				c = core
-			case 4-r < lit:
-				c = mid
+		ready := 1.0
+		if cd := 4 * float64(s.Rate); cd > 0 {
+			ready = 1 - float64(p.JumpCooldown)/cd
+		}
+		nameX, nameC := sx, mid
+		if slot >= chipMinSlot {
+			lit := int(ready * 5)
+			for r := 0; r < 5; r++ {
+				c := off
+				switch {
+				case ready >= 1:
+					c = core
+				case 4-r < lit:
+					c = mid
+				}
+				f.Set(sx, ty+r, c)
 			}
-			f.Set(sx, ty+r, c)
+			nameX = sx + 2
+		} else if ready >= 1 {
+			nameC = core
 		}
 
 		for r := 0; r < sim.WinsToMatch && r < 5; r++ {
-			c := scale(glow, 140)
+			c := off
 			if r < int(p.Wins) {
 				c = core
 			}
@@ -56,12 +66,12 @@ func DrawHUD(f *Frame, x, y, w int, s *sim.State, names []string) {
 		if i < len(names) && names[i] != "" {
 			name = names[i]
 		}
-		DrawText(f, sx+2, ty, fit(name, slot-5), mid, false)
+		DrawText(f, nameX, ty, fit(name, sx+slot-3-nameX), nameC, false)
 
 		barW := slot - 1
 		fill := int(p.Boost) * barW / sim.BoostMax
 		for b := 0; b < barW; b++ {
-			c := scale(glow, 120)
+			c := off
 			if b < fill {
 				c = mid
 				if b == fill-1 || p.Boosting() {

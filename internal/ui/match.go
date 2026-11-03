@@ -14,23 +14,29 @@ import (
 )
 
 const (
-	hashEvery    = 20
-	tickSeconds  = 1.0 / sim.TickRate
-	layoutHeight = sim.H + render.HUDHeight
+	hashEvery   = 20
+	feedSeconds = 3.0
 )
+
+type notice struct {
+	text string
+	col  render.RGB
+	at   float64
+}
 
 type match struct {
 	state    *sim.State
 	arena    *render.Arena
 	names    []string
 	evs      []sim.Event
+	feed     []notice
 	lastTick float64
 	pilot    *bot.Brain // drives this seat in demo mode
 }
 
 func newMatch(a *App, start net.Msg) *match {
 	m := &match{
-		state: sim.NewMatch(start.Seed, uint8(len(start.Roster))),
+		state: sim.NewMatch(start.Seed, uint8(len(start.Roster)), start.Cfg),
 		arena: render.NewArena(),
 		evs:   make([]sim.Event, 0, 64),
 	}
@@ -43,6 +49,8 @@ func newMatch(a *App, start net.Msg) *match {
 	m.lastTick = a.now
 	return m
 }
+
+func (m *match) minSize() (int, int) { return arenaTerminal(m.state.Cfg) }
 
 var keyActions = map[tcell.Key]sim.Action{
 	tcell.KeyUp: sim.FaceUp, tcell.KeyRight: sim.FaceRight,
@@ -81,6 +89,7 @@ func (m *match) Update(a *App) Scene {
 			case net.MsgRoster:
 				l := newLobby()
 				l.roster = append(l.roster, msg.Roster...)
+				l.cfg = msg.Cfg
 				l.autoStart = a.Opts.Demo
 				return l
 			case net.MsgBye:
@@ -101,8 +110,21 @@ func (m *match) step(a *App, msg net.Msg) {
 	m.evs = m.state.Step(msg.Inputs, m.evs[:0])
 	if m.state.Round != wasRound {
 		m.arena.Reset()
+		m.feed = m.feed[:0]
 	}
 	m.arena.Events(m.state, m.evs)
+	for _, e := range m.evs {
+		if text := m.announce(e); text != "" {
+			col := white
+			if e.Kind == sim.EvCrash {
+				col = render.Players[e.Player].Core
+			}
+			m.feed = append(m.feed, notice{text, col, a.now})
+		}
+	}
+	if len(m.feed) > 2 {
+		m.feed = m.feed[len(m.feed)-2:]
+	}
 	m.lastTick = a.now
 	if m.state.Tick%hashEvery == 0 {
 		a.client.SendHash(m.state.Tick, m.state.Hash())
@@ -114,35 +136,77 @@ func (m *match) step(a *App, msg net.Msg) {
 	}
 }
 
+// announce words an event for the feed under the arena; short, because the
+// smallest arena is only 60 pixels wide.
+func (m *match) announce(e sim.Event) string {
+	switch e.Kind {
+	case sim.EvSudden:
+		return "¡MUERTE SÚBITA!"
+	case sim.EvCrash:
+		who := m.names[e.Player]
+		switch e.Cause {
+		case sim.HitWall:
+			return who + " SE ESTRELLÓ"
+		case sim.HitSelf:
+			return who + " SE CHOCÓ SOLO"
+		case sim.HitTrail:
+			return m.names[e.By] + " CERRÓ A " + who
+		case sim.HitHeadOn:
+			if e.Player < e.By {
+				return who + " Y " + m.names[e.By] + " DE FRENTE"
+			}
+		case sim.HitQuit:
+			return who + " SE FUE"
+		}
+	}
+	return ""
+}
+
 func (m *match) Draw(a *App, f *render.Frame) {
+	s := m.state
 	render.Backdrop(f, a.now)
-	ox := (f.W - sim.W) / 2
-	oy := (f.H - layoutHeight) / 2 &^ 1
-	render.DrawHUD(f, ox, oy, sim.W, m.state, m.names)
-	alpha := (a.now - m.lastTick) / tickSeconds
+	ox := (f.W - int(s.W)) / 2
+	oy := (f.H - int(s.H) - render.HUDHeight) / 2 &^ 1
+	render.DrawHUD(f, ox, oy, int(s.W), s, m.names)
+	alpha := (a.now - m.lastTick) * float64(s.Rate)
 	if alpha > 1 {
 		alpha = 1
 	}
-	m.arena.Draw(f, ox, oy+render.HUDHeight, m.state, alpha, a.now)
-	m.drawOverlay(a, f, oy+render.HUDHeight)
+	top := oy + render.HUDHeight
+	m.arena.Draw(f, ox, top, s, alpha, a.now)
+	m.drawOverlay(a, f, top)
+	m.drawFeed(a, f, top+int(s.H))
+}
+
+func (m *match) drawFeed(a *App, f *render.Frame, bottom int) {
+	y := bottom - 7
+	for i := len(m.feed) - 1; i >= 0; i-- {
+		n := m.feed[i]
+		if a.now-n.at > feedSeconds {
+			continue
+		}
+		y -= centerText(f, y, n.text, n.col, false)
+	}
 }
 
 func (m *match) drawOverlay(a *App, f *render.Frame, top int) {
 	s := m.state
-	mid := top + sim.H/2
+	h := int(s.H)
+	mid := top + h/2
+	big := max(1, h/16)
 	switch s.Phase {
 	case sim.Countdown:
-		n := int(s.PhaseTicks)/sim.TickRate + 1
-		frac := float64(int(s.PhaseTicks)%sim.TickRate) / sim.TickRate
-		centerText(f, mid-16, fmt.Sprintf("RONDA %d", s.Round), white, true)
-		centerScaled(f, mid-6, fmt.Sprint(n), pulse(accent, a.now), 2+int(frac*3))
-		if s.Round == 1 {
+		n := int(s.PhaseTicks)/int(s.Rate) + 1
+		frac := float64(int(s.PhaseTicks)%int(s.Rate)) / float64(s.Rate)
+		centerText(f, mid-h/4-4, fmt.Sprintf("RONDA %d", s.Round), white, true)
+		centerScaled(f, mid-3*big, fmt.Sprint(n), pulse(accent, a.now), big+int(frac*float64(big)))
+		if s.Round == 1 && h >= 50 {
 			centerText(f, mid+14, "FLECHAS: GIRAR", white, false)
 			centerText(f, mid+20, "ESPACIO: IMPULSO   J: SALTO", white, false)
 		}
 	case sim.Running:
 		if !s.Players[a.client.You()].Alive {
-			centerText(f, top+sim.H-7, "ELIMINADO", dim, false)
+			centerText(f, top+2, "ELIMINADO", dim, false)
 		}
 	case sim.RoundOver:
 		if s.Winner < 0 {
@@ -154,9 +218,9 @@ func (m *match) drawOverlay(a *App, f *render.Frame, top int) {
 		c := white
 		if s.Winner >= 0 {
 			c = render.Players[s.Winner].Core
-			centerScaled(f, mid-12, m.names[s.Winner], pulse(c, a.now), 3)
+			centerScaled(f, mid-4-3*big, m.names[s.Winner], pulse(c, a.now), big+1)
 		}
-		centerText(f, mid+10, "GANA LA PARTIDA", c, true)
-		centerText(f, mid+20, "VOLVIENDO A LA SALA...", dim, false)
+		centerText(f, mid+6, "GANA LA PARTIDA", c, true)
+		centerText(f, mid+15, "VOLVIENDO A LA SALA...", dim, false)
 	}
 }

@@ -67,13 +67,13 @@ func pulse(c render.RGB, t float64) render.RGB {
 	return render.RGB{R: uint8(float64(c.R) * k), G: uint8(float64(c.G) * k), B: uint8(float64(c.B) * k)}
 }
 
-func drawTooSmall(a *App, f *render.Frame, cols, rows int) {
+func drawTooSmall(a *App, f *render.Frame, cols, rows, needCols, needRows int) {
 	render.Backdrop(f, a.now)
 	y := f.H/2 - 8
 	if y < 0 {
 		y = 0
 	}
 	y += centerText(f, y, "AGRANDÁ LA TERMINAL", accent, false) + 3
-	y += centerText(f, y, fmt.Sprintf("MÍNIMO %dX%d", MinCols, MinRows), white, false) + 1
+	y += centerText(f, y, fmt.Sprintf("MÍNIMO %dX%d", needCols, needRows), white, false) + 1
 	centerText(f, y, fmt.Sprintf("AHORA %dX%d", cols, rows), dim, false)
 }

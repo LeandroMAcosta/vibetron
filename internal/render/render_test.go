@@ -133,16 +133,44 @@ func TestEveryGlyphIsRectangular(t *testing.T) {
 	}
 }
 
-func TestArenaSurvivesRoundsAndOffGridCrash(t *testing.T) {
+func TestArenaSurvivesRoundsSizeChangeAndOffGridCrash(t *testing.T) {
 	a := NewArena()
-	s := sim.NewMatch(1, 6)
-	f := NewFrame(sim.W, sim.H)
-	var evs []sim.Event
-	for i := 0; i < 400; i++ {
-		evs = s.Step(nil, evs[:0])
-		a.Events(s, evs)
-		a.Draw(f, 0, 0, s, 0.5, float64(i)/20)
+	for _, size := range []uint8{0, 3, 1} {
+		s := sim.NewMatch(1, 6, sim.Config{Size: size, Speed: 1})
+		f := NewFrame(int(s.W), int(s.H))
+		var evs []sim.Event
+		for i := 0; i < 400; i++ {
+			evs = s.Step(nil, evs[:0])
+			a.Events(s, evs)
+			a.Draw(f, 0, 0, s, 0.5, float64(i)/20)
+		}
+		a.Events(s, []sim.Event{{Kind: sim.EvCrash, Player: 0, X: -1, Y: s.H}})
+		a.Draw(f, 0, 0, s, 0, 21)
 	}
-	a.Events(s, []sim.Event{{Kind: sim.EvCrash, Player: 0, X: -1, Y: sim.H}})
-	a.Draw(f, 0, 0, s, 0, 21)
+}
+
+func TestTrailIsFlatUntilTheTailFades(t *testing.T) {
+	s := busyState(3, 200)
+	f := NewFrame(int(s.W), int(s.H))
+	NewArena().Draw(f, 0, 0, s, 0, 0)
+	w := int(s.W)
+	px := func(n int) RGB {
+		for k, c := range s.Grid {
+			if c == sim.TrailOf(0) && int(s.Stamp[k]) == n {
+				return f.Pix[k]
+			}
+		}
+		t.Fatalf("no trail cell stamped %d", n)
+		return RGB{}
+	}
+	mid := Players[0].Mid
+	if got := px(150); got != mid {
+		t.Errorf("young trail = %v, want flat %v", got, mid)
+	}
+	if got := px(0); got == mid || got == bgColor {
+		t.Errorf("oldest trail = %v, want faded between %v and bg", got, mid)
+	}
+	if got := f.Pix[int(s.Players[0].Y)*w+int(s.Players[0].X)]; got != Players[0].Core {
+		t.Errorf("head = %v, want %v", got, Players[0].Core)
+	}
 }

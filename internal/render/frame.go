@@ -32,8 +32,8 @@ func (f *Frame) Set(x, y int, c RGB) {
 	}
 }
 
-// Add saturates per channel, which is what makes overlapping glows bloom
-// toward white instead of wrapping.
+// Add saturates per channel, so overlapping particles burn toward white
+// instead of wrapping.
 func (f *Frame) Add(x, y int, c RGB) {
 	if uint(x) < uint(f.W) && uint(y) < uint(f.H) {
 		p := &f.Pix[y*f.W+x]

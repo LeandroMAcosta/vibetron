@@ -6,30 +6,49 @@ import (
 	"estela/internal/sim"
 )
 
-// busyState fills the arena with long serpentine trails for six players,
-// three collapse rings and a few sparks: a late, crowded round.
-func busyState() *sim.State {
-	s := sim.NewMatch(7, 6)
-	s.Phase, s.Ring = sim.Running, 3
-	for y := 0; y < sim.H; y++ {
-		for x := 0; x < sim.W; x++ {
-			c := sim.Empty
-			ring := min(x, y, sim.W-1-x, sim.H-1-y)
-			switch {
-			case ring < 3:
-				c = sim.Wall
-			case y%3 != 0 || x%7 == 0:
-				c = sim.TrailOf(uint8((x/16 + y/19*2) % sim.MaxPlayers))
-			}
-			s.Grid[y*sim.W+x] = c
-		}
-	}
-	for _, i := range []int{20*sim.W + 30, 40*sim.W + 60, 9*sim.W + 80} {
-		s.Grid[i] = sim.Spark
-	}
+// busyState lays a serpentine trail of up to maxLen cells for each of six
+// players in its own sixth of the arena, stamped oldest to newest the way
+// the sim would, with the trail cap stretched to cover it so the oldest
+// 40% shows the tail fade.
+func busyState(size uint8, maxLen int) *sim.State {
+	s := sim.NewMatch(7, 6, sim.Config{Size: size, Speed: 1})
+	s.Phase = sim.Running
+	clear(s.Grid)
+	w, h := int(s.W), int(s.H)
+	rw, rh := w/3, h/2
 	for i := range s.Players {
+		x0, y0 := (i%3)*rw+1, (i/3)*rh+1
 		p := &s.Players[i]
-		p.X, p.Y, p.Alive, p.Boost = int16(10+i*14), int16(6+i*8), true, 60
+		n := 0
+		put := func(x, y int) {
+			if n >= maxLen {
+				return
+			}
+			k := y*w + x
+			s.Grid[k], s.Stamp[k] = sim.TrailOf(uint8(i)), uint32(n)
+			p.X, p.Y = int16(x), int16(y)
+			n++
+		}
+		for r := 0; y0+r < y0+rh-2; r += 2 {
+			for c := 0; c < rw-2; c++ {
+				x := x0 + c
+				if r%4 == 2 {
+					x = x0 + rw - 3 - c
+				}
+				put(x, y0+r)
+			}
+			if r%4 == 0 {
+				put(x0+rw-3, y0+r+1)
+			} else {
+				put(x0, y0+r+1)
+			}
+		}
+		p.Steps, p.Alive, p.Boost = uint32(n), true, 60
+		p.Bonus = uint16(max(0, n-sim.TrailLen))
+	}
+	for _, f := range [][2]int{{30, 20}, {60, 40}, {80, 9}} {
+		x, y := f[0]*w/140, f[1]*h/80
+		s.Grid[(y&^1)*w+x] = sim.Spark
 	}
 	s.Players[1].BoostTicks = 10
 	s.Players[2].JumpTicks = 2
@@ -37,17 +56,17 @@ func busyState() *sim.State {
 }
 
 func BenchmarkArenaDraw(b *testing.B) {
-	scr := simScreen(b, 100, 30)
-	f := NewFrame(100, 60)
-	s := busyState()
+	s := busyState(3, 1<<20)
+	scr := simScreen(b, int(s.W), (int(s.H)+HUDHeight)/2)
+	f := NewFrame(int(s.W), int(s.H)+HUDHeight)
 	a := NewArena()
-	crash := []sim.Event{
+	evs := []sim.Event{
 		{Kind: sim.EvCrash, Player: 4, X: 50, Y: 30},
 		{Kind: sim.EvPickup, Player: 0, X: 20, Y: 20},
 		{Kind: sim.EvBoost, Player: 1, X: 24, Y: 14},
 	}
 	s.Players[4].Alive = false
-	a.Events(s, crash)
+	a.Events(s, evs)
 	t := 0.0
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -55,10 +74,10 @@ func BenchmarkArenaDraw(b *testing.B) {
 		t += 1.0 / 60
 		if i%30 == 0 {
 			s.Tick++
-			s.Players[0].X = int16(10 + (i/30)%60)
-			a.Events(s, crash)
+			a.Events(s, evs)
 		}
-		a.Draw(f, 0, 2, s, float64(i%3)/3, t)
+		DrawHUD(f, 0, 0, f.W, s, nil)
+		a.Draw(f, 0, HUDHeight, s, float64(i%3)/3, t)
 		f.Blit(scr, 0, 0)
 	}
 	b.StopTimer()
@@ -67,7 +86,7 @@ func BenchmarkArenaDraw(b *testing.B) {
 
 func BenchmarkMenu(b *testing.B) {
 	f := NewFrame(110, 64)
-	s := busyState()
+	s := busyState(1, 200)
 	Title(f, 55, 4, 0)
 	b.ReportAllocs()
 	b.ResetTimer()
