@@ -58,11 +58,38 @@ Todos ven en la sala qué arena se eligió y si su terminal alcanza.
 
 El código de la sala guarda la IP local y el puerto del anfitrión, así que unirse no depende de que la red deje descubrir dispositivos. El menú además lista las salas abiertas que detecta en la red, si la red lo permite.
 
-Si alguien no se puede unir:
+El código se calcula al abrir la sala con la IP de ese momento. Si el anfitrión cambia de Wi-Fi, tiene que cerrar la sala y abrirla de nuevo para obtener un código nuevo.
 
-- **macOS** puede pedir permiso de **Red local** para la terminal la primera vez (Ajustes del Sistema → Privacidad y seguridad → Red local). Hay que aceptarlo en las dos máquinas.
-- Las redes de invitados o con "aislamiento de clientes" no dejan que los dispositivos se hablen entre sí. Ahí no hay código que valga: usen otra red o compartan internet desde un teléfono.
-- El anfitrión escucha en TCP 47470–47477 y anuncia la sala por UDP 47570.
+### Si alguien no se puede unir
+
+Primero, el amigo prueba si llega a la sala (la IP es la del anfitrión, la ve con `ipconfig getifaddr en0`):
+
+```sh
+nc -vz <ip-del-anfitrion> 47470
+```
+
+"succeeded" quiere decir que la red está bien y el código va a andar. Si tarda y termina en "Operation timed out", algo está bloqueando, casi siempre una de estas cosas:
+
+- **El firewall de macOS del anfitrión.** Bloquea por programa, no por puerto, y con el modo sigiloso ni siquiera contesta: el amigo solo ve un timeout. Hay que permitir el binario exacto que se está corriendo:
+
+  ```sh
+  sudo /usr/libexec/ApplicationFirewall/socketfilterfw --add "$(pwd)/vibetron"
+  sudo /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp "$(pwd)/vibetron"
+  ```
+
+  Usá la ruta del archivo que de verdad ejecutás: `$(pwd)/vibetron` si lo compilaste en la carpeta del repo, `~/go/bin/vibetron` si lo instalaste con `go install`. Permitir otra ruta no sirve. Cada vez que recompilás, macOS puede tratarlo como un programa nuevo y hay que repetirlo. Confirmalo con `socketfilterfw --listapps`.
+
+  No hace falta apagar el firewall para jugar. Si lo apagaste para probar, volvé a prenderlo al terminar:
+
+  ```sh
+  sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on
+  ```
+
+- **La Wi-Fi aísla a los dispositivos.** Redes de oficina, de edificio o de invitados suelen no dejar que dos equipos se hablen, en ningún puerto. Para confirmarlo, apagá el firewall un minuto y repetí el `nc`: si sigue fallando, es la red. La salida es compartir internet desde un teléfono y conectar las dos computadoras ahí (las IP de un hotspot de iPhone son `172.20.10.x`).
+- **Una VPN prendida** en cualquiera de las dos máquinas puede desviar el tráfico de la red local. Apagala para jugar.
+- **Permiso de Red local de macOS** para la terminal (Ajustes del Sistema → Privacidad y seguridad → Red local). Hay que aceptarlo en las dos máquinas.
+
+Cambiar de puerto no resuelve nada de esto: el firewall decide por programa y una red que aísla bloquea todos los puertos. El anfitrión escucha en TCP 47470–47477 y anuncia la sala por UDP 47570.
 
 ## Compilar para tus amigos
 
