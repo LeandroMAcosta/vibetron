@@ -3,7 +3,7 @@ package render
 import (
 	"math"
 
-	"estela/internal/sim"
+	"vibetron/internal/sim"
 )
 
 // deathTicks is how long a dead rider's leftover trail takes to sink to dim.

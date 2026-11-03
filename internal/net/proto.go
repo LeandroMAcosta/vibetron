@@ -8,7 +8,7 @@ import (
 	"errors"
 	"io"
 
-	"estela/internal/sim"
+	"vibetron/internal/sim"
 )
 
 const (

@@ -1,4 +1,4 @@
-// Package render draws ESTELA into an RGB pixel framebuffer and blits it to
+// Package render draws VIBETRON into an RGB pixel framebuffer and blits it to
 // the terminal as half-block cells, two pixels per cell.
 package render
 

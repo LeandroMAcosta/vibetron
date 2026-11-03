@@ -6,8 +6,8 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
-	"estela/internal/net"
-	"estela/internal/render"
+	"vibetron/internal/net"
+	"vibetron/internal/render"
 )
 
 type dialResult struct {

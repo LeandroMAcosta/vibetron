@@ -7,8 +7,8 @@ import (
 	"os/user"
 	"strings"
 
-	"estela/internal/net"
-	"estela/internal/ui"
+	"vibetron/internal/net"
+	"vibetron/internal/ui"
 )
 
 func main() {
@@ -23,7 +23,7 @@ func main() {
 		opts.Name = string(r[:net.MaxName])
 	}
 	if err := ui.Run(opts); err != nil {
-		fmt.Fprintln(os.Stderr, "estela:", err)
+		fmt.Fprintln(os.Stderr, "vibetron:", err)
 		os.Exit(1)
 	}
 }

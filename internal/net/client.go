@@ -11,7 +11,7 @@ import (
 	"time"
 	"unicode"
 
-	"estela/internal/sim"
+	"vibetron/internal/sim"
 )
 
 const dialTimeout = 3 * time.Second

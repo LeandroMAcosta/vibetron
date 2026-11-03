@@ -5,7 +5,7 @@ import (
 	"math"
 	"strings"
 
-	"estela/internal/render"
+	"vibetron/internal/render"
 )
 
 var (

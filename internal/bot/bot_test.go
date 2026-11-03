@@ -3,7 +3,7 @@ package bot
 import (
 	"testing"
 
-	"estela/internal/sim"
+	"vibetron/internal/sim"
 )
 
 // arena returns a running two-player state with an empty grid and the

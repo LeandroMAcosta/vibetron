@@ -143,11 +143,11 @@ func stars(f *Frame, hy int, t float64) {
 
 var titleScratch *Frame
 
-// Title draws the ESTELA logo centered on cx with its top at y: chrome
+// Title draws the VIBETRON logo centered on cx with its top at y: chrome
 // gradient letters with a 3D extrusion, a pulsing neon halo and a
 // highlight sweeping across.
 func Title(f *Frame, cx, y int, t float64) {
-	const word = "ESTELA"
+	const word = "VIBETRON"
 	k := 2
 	if TextWidthScaled(word, 3) <= f.W-8 {
 		k = 3

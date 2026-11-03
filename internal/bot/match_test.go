@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"estela/internal/sim"
+	"vibetron/internal/sim"
 )
 
 const (

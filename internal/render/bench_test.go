@@ -3,7 +3,7 @@ package render
 import (
 	"testing"
 
-	"estela/internal/sim"
+	"vibetron/internal/sim"
 )
 
 // busyState lays a serpentine trail of up to maxLen cells for each of six

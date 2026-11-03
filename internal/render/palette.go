@@ -1,6 +1,6 @@
 package render
 
-import "estela/internal/sim"
+import "vibetron/internal/sim"
 
 // Palette is one player's color: Mid is the flat trail color, Core the
 // head, Mid lightened 55% toward white.

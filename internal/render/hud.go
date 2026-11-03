@@ -1,6 +1,6 @@
 package render
 
-import "estela/internal/sim"
+import "vibetron/internal/sim"
 
 // HUDHeight is the pixel height DrawHUD uses: two rows of headroom for
 // accent marks (Á in ÁMBAR), five of text and one for the boost bar.

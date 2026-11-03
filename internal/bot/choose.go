@@ -1,6 +1,6 @@
 package bot
 
-import "estela/internal/sim"
+import "vibetron/internal/sim"
 
 const unsafe = -1
 

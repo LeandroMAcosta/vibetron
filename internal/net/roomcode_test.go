@@ -71,11 +71,11 @@ func TestEncodeRejectsOutOfRange(t *testing.T) {
 
 func TestParseBeacon(t *testing.T) {
 	code, _ := Encode(netip.MustParseAddrPort("10.0.0.7:47471"))
-	r, ok := parseBeacon("ESTELA1|" + code + "|mac\x01book|2/5")
+	r, ok := parseBeacon("VIBETRON1|" + code + "|mac\x01book|2/5")
 	if !ok || r.Code != code || r.Name != "macbook" || r.Players != "2/5" {
 		t.Fatalf("parseBeacon = %+v, %v", r, ok)
 	}
-	for _, bad := range []string{"ESTELA2|" + code + "|x|1/2", "ESTELA1|nope|x|1/2", "ESTELA1|" + code + "|x|3/2", "ESTELA1|" + code + "|x"} {
+	for _, bad := range []string{"VIBETRON2|" + code + "|x|1/2", "VIBETRON1|nope|x|1/2", "VIBETRON1|" + code + "|x|3/2", "VIBETRON1|" + code + "|x"} {
 		if _, ok := parseBeacon(bad); ok {
 			t.Errorf("parseBeacon(%q) accepted", bad)
 		}

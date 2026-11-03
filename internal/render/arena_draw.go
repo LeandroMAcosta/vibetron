@@ -3,7 +3,7 @@ package render
 import (
 	"math"
 
-	"estela/internal/sim"
+	"vibetron/internal/sim"
 )
 
 // Draw renders the s.W x s.H pixel arena at (ox, oy). alpha in [0,1] is how

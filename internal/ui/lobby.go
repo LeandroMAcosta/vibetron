@@ -7,9 +7,9 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
-	"estela/internal/net"
-	"estela/internal/render"
-	"estela/internal/sim"
+	"vibetron/internal/net"
+	"vibetron/internal/render"
+	"vibetron/internal/sim"
 )
 
 type lobby struct {

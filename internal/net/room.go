@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"estela/internal/sim"
+	"vibetron/internal/sim"
 )
 
 const (

@@ -3,7 +3,7 @@
 // personality.
 package bot
 
-import "estela/internal/sim"
+import "vibetron/internal/sim"
 
 // Personality knobs, all drawn from the seed in New.
 type traits struct {

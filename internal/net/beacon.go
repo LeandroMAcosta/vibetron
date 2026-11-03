@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"estela/internal/sim"
+	"vibetron/internal/sim"
 )
 
 const (
 	beaconPort   = BasePort + 100
-	beaconMagic  = "ESTELA1"
+	beaconMagic  = "VIBETRON1"
 	beaconEvery  = time.Second
 	roomLifetime = 3 * time.Second
 )

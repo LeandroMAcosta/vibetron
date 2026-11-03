@@ -1,4 +1,4 @@
-module estela
+module vibetron
 
 go 1.27.3
 

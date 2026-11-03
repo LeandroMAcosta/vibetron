@@ -12,7 +12,7 @@ import (
 	"time"
 	"unicode"
 
-	"estela/internal/sim"
+	"vibetron/internal/sim"
 )
 
 // Brain picks a bot's action for the next tick from the host's own state.
