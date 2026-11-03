@@ -38,7 +38,7 @@ type matchResult struct {
 }
 
 func playMatch(seed uint64, seat func(id uint8, seed uint64) thinker) matchResult {
-	s := sim.NewMatch(seed, seats)
+	s := sim.NewMatch(seed, seats, testCfg)
 	var minds [seats]thinker
 	for i := range minds {
 		minds[i] = seat(uint8(i), seed*31+uint64(i))

@@ -15,7 +15,7 @@ func TestMsgRoundTrip(t *testing.T) {
 		{Type: MsgWelcome, You: 3},
 		{Type: MsgReject, Reason: "sala llena"},
 		{Type: MsgRoster, Roster: []Seat{{"Ana", false}, {"Bot 2", true}}},
-		{Type: MsgStart, Seed: 0xDEADBEEF12345678, Roster: []Seat{{"Ana", false}}},
+		{Type: MsgStart, Seed: 0xDEADBEEF12345678, Cfg: sim.Config{Size: 3, Speed: 2}, Roster: []Seat{{"Ana", false}}},
 		{Type: MsgTick, Tick: 9001, Inputs: []sim.Input{{Player: 0, Action: sim.Jump}, {Player: 5, Action: sim.FaceLeft}}},
 		{Type: MsgHash, Tick: 40, Hash: 0xFFEEDDCCBBAA9988},
 		{Type: MsgInput, Action: sim.Boost},

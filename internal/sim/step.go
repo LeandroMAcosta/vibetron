@@ -5,13 +5,23 @@ type EventKind uint8
 const (
 	EvCountdown EventKind = iota // Player holds the seconds left
 	EvRoundStart
-	EvCrash
+	EvCrash // Cause and By say what the player hit
 	EvPickup
 	EvJump
 	EvBoost
-	EvCollapse // Player holds the ring number
-	EvRoundWon // Player is the winner, or 0xFF for a draw
+	EvSudden
+	EvRoundWon // Player is the winner, or NoPlayer for a draw
 	EvMatchWon
+)
+
+type Cause uint8
+
+const (
+	HitWall Cause = iota
+	HitSelf
+	HitTrail  // By is the trail's owner
+	HitHeadOn // By is the other rider
+	HitQuit
 )
 
 const NoPlayer = 0xFF
@@ -19,6 +29,8 @@ const NoPlayer = 0xFF
 type Event struct {
 	Kind   EventKind
 	Player uint8
+	By     uint8
+	Cause  Cause
 	X, Y   int16
 }
 
@@ -32,8 +44,8 @@ func (s *State) Step(inputs []Input, out []Event) []Event {
 		if s.PhaseTicks == 0 {
 			s.Phase = Running
 			out = append(out, Event{Kind: EvRoundStart})
-		} else if s.PhaseTicks%TickRate == 0 {
-			out = append(out, Event{Kind: EvCountdown, Player: uint8(s.PhaseTicks / TickRate)})
+		} else if s.PhaseTicks%s.Rate == 0 {
+			out = append(out, Event{Kind: EvCountdown, Player: uint8(s.PhaseTicks / s.Rate)})
 		}
 		out = s.applyQuits(inputs, out)
 	case Running:
@@ -70,7 +82,7 @@ func (s *State) leave(id uint8, out []Event) []Event {
 	p.Left = true
 	if p.Alive {
 		p.Alive = false
-		out = append(out, Event{Kind: EvCrash, Player: id, X: p.X, Y: p.Y})
+		out = append(out, Event{Kind: EvCrash, Player: id, Cause: HitQuit, X: p.X, Y: p.Y})
 	}
 	return out
 }
@@ -84,10 +96,10 @@ func (s *State) applyInputs(inputs []Input, out []Event) []Event {
 			out = s.leave(in.Player, out)
 			continue
 		}
-		if !s.Players[in.Player].Alive {
+		p := &s.Players[in.Player]
+		if !p.Alive {
 			continue
 		}
-		p := &s.Players[in.Player]
 		switch in.Action {
 		case TurnLeft:
 			p.enqueue(p.lastDir().TurnLeft())
@@ -98,12 +110,12 @@ func (s *State) applyInputs(inputs []Input, out []Event) []Event {
 		case Boost:
 			if p.BoostTicks == 0 && p.Boost >= BoostCost {
 				p.Boost -= BoostCost
-				p.BoostTicks = boostDuration
+				p.BoostTicks = uint16(s.secs(3) / 2)
 				out = append(out, Event{Kind: EvBoost, Player: in.Player, X: p.X, Y: p.Y})
 			}
 		case Jump:
 			if p.JumpCooldown == 0 && p.JumpTicks == 0 {
-				p.JumpTicks, p.JumpCooldown = JumpDuration, JumpCooldown
+				p.JumpTicks, p.JumpCooldown = JumpDuration, uint16(s.secs(4))
 				out = append(out, Event{Kind: EvJump, Player: in.Player, X: p.X, Y: p.Y})
 			}
 		}
@@ -147,11 +159,12 @@ func (s *State) run(out []Event) []Event {
 	}
 	out = s.moveAll(false, out)
 	out = s.moveAll(true, out)
+	refill := s.Rate / 5
 	for i := uint8(0); i < s.Count; i++ {
 		p := &s.Players[i]
 		if p.BoostTicks > 0 {
 			p.BoostTicks--
-		} else if p.Boost < BoostMax && s.RunTicks%boostRefill == 0 {
+		} else if p.Boost < BoostMax && s.RunTicks%uint32(refill) == 0 {
 			p.Boost++
 		}
 		if p.JumpTicks > 0 {
@@ -160,8 +173,14 @@ func (s *State) run(out []Event) []Event {
 		if p.JumpCooldown > 0 {
 			p.JumpCooldown--
 		}
+		if !p.Alive {
+			s.retract(i, 2)
+		}
 	}
-	out = s.collapse(out)
+	if !s.Sudden && s.RunTicks >= s.secs(60) {
+		s.Sudden, s.suddenAt = true, s.RunTicks
+		out = append(out, Event{Kind: EvSudden})
+	}
 	s.spawnSpark()
 	return s.checkRoundEnd(out)
 }
@@ -171,6 +190,8 @@ func (s *State) run(out []Event) []Event {
 func (s *State) moveAll(boostPass bool, out []Event) []Event {
 	var tx, ty [MaxPlayers]int16
 	var moving, crashed [MaxPlayers]bool
+	var cause [MaxPlayers]Cause
+	var by [MaxPlayers]uint8
 	for i := uint8(0); i < s.Count; i++ {
 		p := &s.Players[i]
 		if !p.Alive || (boostPass && !p.Boosting()) {
@@ -179,12 +200,21 @@ func (s *State) moveAll(boostPass bool, out []Event) []Event {
 		dx, dy := p.Dir.Delta()
 		tx[i], ty[i], moving[i] = p.X+dx, p.Y+dy, true
 		c := s.At(tx[i], ty[i])
-		crashed[i] = c == Wall || (c != Empty && c != Spark && !p.Jumping())
+		switch o, isTrail := c.Owner(); {
+		case c == Wall:
+			crashed[i], cause[i] = true, HitWall
+		case isTrail && !p.Jumping():
+			crashed[i], cause[i], by[i] = true, HitTrail, o
+			if o == i {
+				cause[i] = HitSelf
+			}
+		}
 	}
 	for i := uint8(0); i < s.Count; i++ {
 		for j := i + 1; j < s.Count; j++ {
 			if moving[i] && moving[j] && tx[i] == tx[j] && ty[i] == ty[j] {
 				crashed[i], crashed[j] = true, true
+				cause[i], cause[j], by[i], by[j] = HitHeadOn, HitHeadOn, j, i
 			}
 		}
 	}
@@ -195,20 +225,22 @@ func (s *State) moveAll(boostPass bool, out []Event) []Event {
 		p := &s.Players[i]
 		if crashed[i] {
 			p.Alive = false
-			out = append(out, Event{Kind: EvCrash, Player: i, X: tx[i], Y: ty[i]})
+			out = append(out, Event{Kind: EvCrash, Player: i, Cause: cause[i], By: by[i], X: tx[i], Y: ty[i]})
 			continue
 		}
 		p.X, p.Y = tx[i], ty[i]
-		cell := &s.Grid[idx(p.X, p.Y)]
+		cell := &s.Grid[s.idx(p.X, p.Y)]
 		if *cell == Spark {
 			s.Sparks--
 			p.Boost, p.JumpCooldown = BoostMax, 0
+			p.Bonus += SparkBonus
 			out = append(out, Event{Kind: EvPickup, Player: i, X: p.X, Y: p.Y})
 			*cell = Empty
 		}
 		if !p.Jumping() && *cell == Empty {
-			*cell = TrailOf(i)
+			s.paint(i)
 		}
+		s.retract(i, p.TrailCells()-s.MaxTrail(i))
 	}
 	return out
 }
@@ -218,7 +250,7 @@ func (s *State) checkRoundEnd(out []Event) []Event {
 	if alive > 1 || (alive == 1 && s.Count == 1) {
 		return out
 	}
-	s.Phase, s.PhaseTicks, s.Winner = RoundOver, roundOverTicks, -1
+	s.Phase, s.PhaseTicks, s.Winner = RoundOver, uint16(s.secs(2)), -1
 	for i := uint8(0); i < s.Count; i++ {
 		if p := &s.Players[i]; p.Alive {
 			p.Wins++

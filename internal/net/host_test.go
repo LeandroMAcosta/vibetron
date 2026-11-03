@@ -77,7 +77,7 @@ func play(c *Client, quitAt uint32) (*sim.State, int, error) {
 	for m := range c.Msgs() {
 		switch m.Type {
 		case MsgStart:
-			s = sim.NewMatch(m.Seed, uint8(len(m.Roster)))
+			s = sim.NewMatch(m.Seed, uint8(len(m.Roster)), m.Cfg)
 		case MsgTick:
 			s.Step(m.Inputs, nil)
 			if s.Tick != m.Tick {
@@ -125,6 +125,16 @@ func TestLockstepMatch(t *testing.T) {
 	}
 	if h.Bots() != 3 || clients[0].You() != 0 || clients[1].You() != 1 {
 		t.Fatalf("bots=%d you=%d,%d", h.Bots(), clients[0].You(), clients[1].You())
+	}
+	want := sim.Config{Size: 0, Speed: 3}
+	h.SetConfig(want)
+	for _, c := range clients {
+		if m := await(t, c, MsgRoster, seats(5)); m.Cfg != want {
+			t.Fatalf("roster config = %+v, want %+v", m.Cfg, want)
+		}
+	}
+	if h.Config() != want {
+		t.Fatalf("host config = %+v", h.Config())
 	}
 	if err := h.Start(); err != nil {
 		t.Fatal(err)

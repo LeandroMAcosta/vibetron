@@ -21,7 +21,7 @@ type Brain interface {
 }
 
 type HostConfig struct {
-	TickInterval time.Duration // default 50ms
+	TickInterval time.Duration // 0 follows the speed the host picked
 	LobbyDelay   time.Duration // pause on the final screen before the lobby; default 4s
 	NewBrain     func(id uint8, seed uint64) Brain
 	Port         int // 0 tries BasePort..BasePort+7
@@ -53,9 +53,6 @@ type Host struct {
 type lobbyInfo struct{ humans, seats int }
 
 func NewHost(cfg HostConfig) (*Host, error) {
-	if cfg.TickInterval <= 0 {
-		cfg.TickInterval = time.Second / sim.TickRate
-	}
 	if cfg.LobbyDelay <= 0 {
 		cfg.LobbyDelay = 4 * time.Second
 	}
@@ -85,7 +82,7 @@ func NewHost(cfg HostConfig) (*Host, error) {
 	}
 	h := &Host{cfg: cfg, ln: ln, port: uint16(cfg.Port), cmds: make(chan func(*room)), done: make(chan struct{})}
 	h.code, _ = Encode(netip.AddrPortFrom(ip, h.port))
-	r := &room{h: h}
+	r := &room{h: h, cfg: sim.DefaultConfig}
 	r.publish()
 	h.wg.Add(3)
 	go h.run(r)
@@ -101,6 +98,14 @@ func (h *Host) LoopbackAddr() netip.AddrPort {
 }
 
 func (h *Host) SetBots(n int) { h.post(func(r *room) { r.setBots(n) }) }
+
+// SetConfig picks the arena size and speed for the next match.
+func (h *Host) SetConfig(c sim.Config) { h.post(func(r *room) { r.setConfig(c) }) }
+
+func (h *Host) Config() sim.Config {
+	c, _ := call(h, func(r *room) sim.Config { return r.cfg })
+	return c
+}
 
 func (h *Host) Bots() int {
 	n, _ := call(h, func(r *room) int { return r.effectiveBots() })

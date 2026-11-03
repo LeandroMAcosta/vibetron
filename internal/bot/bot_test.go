@@ -10,22 +10,22 @@ import (
 // given players placed by hand.
 func arena(t testing.TB, players ...sim.Player) *sim.State {
 	t.Helper()
-	s := sim.NewMatch(1, uint8(len(players)))
+	s := sim.NewMatch(1, uint8(len(players)), testCfg)
 	for s.Phase != sim.Running {
 		s.Step(nil, nil)
 	}
-	s.Grid = [sim.W * sim.H]sim.Cell{}
+	clear(s.Grid)
 	for i, p := range players {
 		p.Alive, p.Boost = true, sim.BoostMax
 		s.Players[i] = p
-		s.Grid[cellIndex(p.X, p.Y)] = sim.TrailOf(uint8(i))
+		s.Grid[at(s, p.X, p.Y)] = sim.TrailOf(uint8(i))
 	}
 	return s
 }
 
 func TestTurnsAwayFromWall(t *testing.T) {
 	for seed := uint64(0); seed < 20; seed++ {
-		s := arena(t, sim.Player{X: sim.W - 1, Y: 20, Dir: sim.Right}, sim.Player{X: 10, Y: 40, Dir: sim.Left})
+		s := arena(t, sim.Player{X: testCfg.W() - 1, Y: 20, Dir: sim.Right}, sim.Player{X: 10, Y: 40, Dir: sim.Left})
 		a, ok := New(0, seed).Think(s)
 		if !ok || (a != sim.FaceUp && a != sim.FaceDown) {
 			t.Fatalf("seed %d: got %v %v, want a turn off the wall", seed, a, ok)
@@ -36,7 +36,7 @@ func TestTurnsAwayFromWall(t *testing.T) {
 func TestPrefersOpenSideOverPocket(t *testing.T) {
 	s := arena(t, sim.Player{X: 50, Y: 20, Dir: sim.Right}, sim.Player{X: 10, Y: 50, Dir: sim.Left})
 	// Up leads into a six-cell pocket, down into the open arena.
-	block := func(x, y int16) { s.Grid[cellIndex(x, y)] = sim.TrailOf(1) }
+	block := func(x, y int16) { s.Grid[at(s, x, y)] = sim.TrailOf(1) }
 	for x := int16(47); x <= 51; x++ {
 		block(x, 17)
 	}
@@ -59,10 +59,10 @@ func TestPrefersOpenSideOverPocket(t *testing.T) {
 func TestJumpsOverTrapWhenBoxedIn(t *testing.T) {
 	s := arena(t, sim.Player{X: 50, Y: 20, Dir: sim.Right}, sim.Player{X: 10, Y: 50, Dir: sim.Left})
 	for y := int16(19); y <= 21; y++ {
-		s.Grid[cellIndex(51, y)] = sim.TrailOf(1)
+		s.Grid[at(s, 51, y)] = sim.TrailOf(1)
 	}
-	s.Grid[cellIndex(50, 19)] = sim.TrailOf(1)
-	s.Grid[cellIndex(50, 21)] = sim.TrailOf(1)
+	s.Grid[at(s, 50, 19)] = sim.TrailOf(1)
+	s.Grid[at(s, 50, 21)] = sim.TrailOf(1)
 	a, ok := New(0, 7).Think(s)
 	if !ok || a != sim.Jump {
 		t.Fatalf("got %v %v, want Jump", a, ok)
@@ -88,7 +88,7 @@ func TestAvoidsHeadOn(t *testing.T) {
 }
 
 func TestIdleOutsideRunning(t *testing.T) {
-	s := sim.NewMatch(1, 2)
+	s := sim.NewMatch(1, 2, testCfg)
 	if _, ok := New(0, 1).Think(s); ok {
 		t.Fatal("acted during countdown")
 	}
@@ -107,7 +107,7 @@ func TestPersonalitiesDiffer(t *testing.T) {
 // midRound returns a six-bot state a few hundred ticks into a round, with
 // trails on the board so the flood fill does real work.
 func midRound() (*sim.State, *Brain) {
-	s := sim.NewMatch(3, seats)
+	s := sim.NewMatch(3, seats, testCfg)
 	var minds [seats]*Brain
 	for i := range minds {
 		minds[i] = New(uint8(i), uint64(i))
@@ -144,3 +144,8 @@ func BenchmarkThink(bm *testing.B) {
 		b.Think(s)
 	}
 }
+
+// testCfg is the 100x56 arena the hand-placed scenarios were drawn for.
+var testCfg = sim.Config{Size: 2, Speed: 2}
+
+func at(s *sim.State, x, y int16) int { return int(y)*int(s.W) + int(x) }

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	Version  = 1
+	Version  = 2
 	BasePort = 47470
 	MaxName  = 10
 	maxFrame = 1 << 12
@@ -41,6 +41,7 @@ type Msg struct {
 	Reason  string      // Reject
 	Roster  []Seat      // Roster, Start
 	Seed    uint64      // Start
+	Cfg     sim.Config  // Roster, Start
 	Tick    uint32      // Tick, Hash
 	Inputs  []sim.Input // Tick
 	Hash    uint64      // Hash
@@ -69,7 +70,7 @@ func WriteMsg(w *bufio.Writer, m *Msg) error {
 		p = putStr(p, m.Reason)
 	case MsgRoster, MsgStart:
 		p = binary.BigEndian.AppendUint64(p, m.Seed)
-		p = append(p, byte(len(m.Roster)))
+		p = append(p, m.Cfg.Size, m.Cfg.Speed, byte(len(m.Roster)))
 		for _, s := range m.Roster {
 			p = putStr(p, s.Name)
 			p = append(p, bool8(s.Bot))
@@ -117,6 +118,10 @@ func ReadMsg(r *bufio.Reader, m *Msg) error {
 		m.Reason = d.str()
 	case MsgRoster, MsgStart:
 		m.Seed = d.u64()
+		m.Cfg = sim.Config{Size: d.u8(), Speed: d.u8()}
+		if !d.bad && !m.Cfg.Valid() {
+			return ErrFrame
+		}
 		count := int(d.u8())
 		if count > sim.MaxPlayers {
 			return ErrFrame

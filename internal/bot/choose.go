@@ -9,7 +9,6 @@ type candidate struct {
 	space      int // reachable cells after the move, or unsafe
 	endX, endY int16
 	threat     float32
-	doomed     bool
 	score      float32
 }
 
@@ -32,10 +31,6 @@ func (b *Brain) evaluate(p *sim.Player, d sim.Dir, steps int) candidate {
 			return c
 		}
 		c.threat += b.threatAt(x, y)
-	}
-	c.doomed = b.g.doomed(x, y)
-	if c.doomed && b.g.doomIn <= 1 {
-		return c
 	}
 	b.g.begin()
 	b.g.mark(p.X, p.Y)
@@ -70,9 +65,6 @@ func (b *Brain) score(c *candidate, turned, tight bool, a *aim) {
 		headOn = 40
 	}
 	c.score -= c.threat * headOn
-	if c.doomed {
-		c.score -= 30
-	}
 	c.score += t.jitter * b.unit()
 }
 
@@ -84,9 +76,9 @@ func (b *Brain) findAims(s *sim.State, p *sim.Player) aim {
 	if t.greed > 0.15 {
 		r := 3 + int16(15*t.greed)
 		bestD := int16(1 << 14)
-		for y := max(p.Y-r, 0); y <= min(p.Y+r, sim.H-1); y++ {
-			for x := max(p.X-r, 0); x <= min(p.X+r, sim.W-1); x++ {
-				if s.Grid[cellIndex(x, y)] != sim.Spark {
+		for y := max(p.Y-r, 0); y <= min(p.Y+r, s.H-1); y++ {
+			for x := max(p.X-r, 0); x <= min(p.X+r, s.W-1); x++ {
+				if s.At(x, y) != sim.Spark {
 					continue
 				}
 				if d := manhattan(p.X, p.Y, x, y); d < bestD {
@@ -112,8 +104,8 @@ func (b *Brain) findAims(s *sim.State, p *sim.Player) aim {
 		}
 		dx, dy := rival.Dir.Delta()
 		a.cut = true
-		a.cutX = min(max(rival.X+lead*dx, 0), sim.W-1)
-		a.cutY = min(max(rival.Y+lead*dy, 0), sim.H-1)
+		a.cutX = min(max(rival.X+lead*dx, 0), s.W-1)
+		a.cutY = min(max(rival.Y+lead*dy, 0), s.H-1)
 	}
 	return a
 }
@@ -125,7 +117,7 @@ func (b *Brain) wantsBoost(s *sim.State, p *sim.Player, a *aim) bool {
 	}
 	dx, dy := p.Dir.Delta()
 	run := int16(0)
-	for x, y := p.X+dx, p.Y+dy; run < 24 && b.g.open(x, y); x, y = x+dx, y+dy {
+	for x, y := p.X+dx, p.Y+dy; run < 24 && b.g.free(x, y); x, y = x+dx, y+dy {
 		run++
 		if a.spark && x == a.sparkX && y == a.sparkY && run <= 12 && b.traits.greed > 0.4 {
 			return true

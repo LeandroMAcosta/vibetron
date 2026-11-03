@@ -2,50 +2,43 @@ package sim
 
 import "hash/fnv"
 
-// collapse closes the arena one ring at a time once a round drags on.
-func (s *State) collapse(out []Event) []Event {
-	if s.RunTicks < CollapseAfter || (s.RunTicks-CollapseAfter)%CollapseEvery != 0 || s.Ring >= MaxRing {
-		return out
+// paint lays player i's trail on its current cell and remembers it in the
+// trail queue so the tail can be erased later.
+func (s *State) paint(i uint8) {
+	p := &s.Players[i]
+	k := s.idx(p.X, p.Y)
+	s.Grid[k] = TrailOf(i)
+	s.Stamp[k] = p.Steps
+	p.Steps++
+	if p.tail > 1024 && p.tail*2 > len(p.trail) {
+		p.trail = append(p.trail[:0], p.trail[p.tail:]...)
+		p.tail = 0
 	}
-	r := int16(s.Ring)
-	s.Ring++
-	for x := r; x < W-r; x++ {
-		s.wall(x, r)
-		s.wall(x, H-1-r)
-	}
-	for y := r; y < H-r; y++ {
-		s.wall(r, y)
-		s.wall(W-1-r, y)
-	}
-	out = append(out, Event{Kind: EvCollapse, Player: s.Ring})
-	for i := uint8(0); i < s.Count; i++ {
-		p := &s.Players[i]
-		if p.Alive && s.Grid[idx(p.X, p.Y)] == Wall {
-			p.Alive = false
-			out = append(out, Event{Kind: EvCrash, Player: i, X: p.X, Y: p.Y})
-		}
-	}
-	return out
+	p.trail = append(p.trail, int32(k))
 }
 
-func (s *State) wall(x, y int16) {
-	c := &s.Grid[idx(x, y)]
-	if *c == Spark {
-		s.Sparks--
+// retract erases up to n cells from the tail of player i's trail.
+func (s *State) retract(i uint8, n int) {
+	p := &s.Players[i]
+	for ; n > 0 && p.tail < len(p.trail); n-- {
+		k := p.trail[p.tail]
+		p.tail++
+		if s.Grid[k] == TrailOf(i) {
+			s.Grid[k] = Empty
+		}
 	}
-	*c = Wall
 }
 
 // spawnSpark drops a pickup on a random empty cell every few seconds.
 func (s *State) spawnSpark() {
-	if s.RunTicks%sparkEvery != 0 || s.Sparks >= maxSparks {
+	if s.RunTicks%s.secs(3) != 0 || s.Sparks >= maxSparks {
 		return
 	}
 	for try := 0; try < 16; try++ {
 		n := s.next()
-		x, y := int16(n%W), int16((n>>16)%H)
-		if s.Grid[idx(x, y)] == Empty && !s.nearHead(x, y) {
-			s.Grid[idx(x, y)] = Spark
+		x, y := int16(n%uint64(s.W)), int16((n>>16)%uint64(s.H))
+		if s.Grid[s.idx(x, y)] == Empty && !s.nearHead(x, y) {
+			s.Grid[s.idx(x, y)] = Spark
 			s.Sparks++
 			return
 		}
@@ -73,19 +66,22 @@ func abs16(v int16) int16 {
 // detect a desync by comparing it.
 func (s *State) Hash() uint64 {
 	h := fnv.New64a()
-	var b [24]byte
-	b[0], b[1], b[2], b[3] = byte(s.Tick), byte(s.Tick>>8), byte(s.Tick>>16), byte(s.Tick>>24)
-	b[4], b[5], b[6], b[7] = byte(s.Phase), byte(s.PhaseTicks), byte(s.Ring), byte(s.Sparks)
-	for i := 0; i < 8; i++ {
-		b[8+i] = byte(s.rng >> (8 * i))
+	var b [32]byte
+	put := func(n int, v uint64) {
+		for i := 0; i < n; i++ {
+			b[i] = byte(v >> (8 * i))
+		}
+		h.Write(b[:n])
 	}
-	h.Write(b[:16])
+	put(4, uint64(s.Tick))
+	put(4, uint64(s.RunTicks))
+	put(4, uint64(s.Phase)|uint64(s.PhaseTicks)<<8|uint64(s.Sparks)<<24)
+	put(8, s.rng)
 	for i := uint8(0); i < s.Count; i++ {
 		p := &s.Players[i]
-		b = [24]byte{byte(p.X), byte(p.X >> 8), byte(p.Y), byte(p.Y >> 8), byte(p.Dir), p.queued,
-			byte(p.queue[0]), byte(p.queue[1]), bool8(p.Alive), bool8(p.Left), p.Boost, p.BoostTicks,
-			p.JumpTicks, p.JumpCooldown, p.Wins}
-		h.Write(b[:15])
+		put(8, uint64(uint16(p.X))|uint64(uint16(p.Y))<<16|uint64(p.Dir)<<32|uint64(p.queued)<<40|uint64(bool8(p.Alive))<<48|uint64(bool8(p.Left))<<56)
+		put(8, uint64(p.Boost)|uint64(p.BoostTicks)<<8|uint64(p.JumpTicks)<<24|uint64(p.JumpCooldown)<<32|uint64(p.Wins)<<48)
+		put(8, uint64(p.Steps)|uint64(p.Bonus)<<32|uint64(p.TrailCells())<<48)
 	}
 	grid := make([]byte, len(s.Grid))
 	for i, c := range s.Grid {

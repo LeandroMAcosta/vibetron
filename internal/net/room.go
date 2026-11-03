@@ -27,6 +27,7 @@ type room struct {
 	h         *Host
 	peers     []*peer
 	bots      int
+	cfg       sim.Config
 	match     *match
 	ticker    *time.Ticker
 	backTimer *time.Timer
@@ -68,7 +69,7 @@ func (r *room) publish() {
 // broadcastRoster resends each peer its seat first, since a lobby departure
 // shifts everyone after it down by one.
 func (r *room) broadcastRoster() {
-	rs := &Msg{Type: MsgRoster, Roster: r.roster()}
+	rs := &Msg{Type: MsgRoster, Roster: r.roster(), Cfg: r.cfg}
 	for i, p := range r.peers {
 		r.send(p, &Msg{Type: MsgWelcome, You: uint8(i)})
 		r.send(p, rs)
@@ -140,6 +141,14 @@ func (r *room) setBots(n int) {
 	r.broadcastRoster()
 }
 
+func (r *room) setConfig(c sim.Config) {
+	if r.match != nil || !c.Valid() {
+		return
+	}
+	r.cfg = c
+	r.broadcastRoster()
+}
+
 func (r *room) start() error {
 	if r.match != nil {
 		return ErrInMatch
@@ -152,7 +161,7 @@ func (r *room) start() error {
 	rand.Read(b[:])
 	seed := binary.LittleEndian.Uint64(b[:])
 	m := &match{
-		state:  sim.NewMatch(seed, uint8(len(roster))),
+		state:  sim.NewMatch(seed, uint8(len(roster)), r.cfg),
 		seats:  make([]*peer, len(roster)),
 		brains: make([]Brain, len(roster)),
 		hashes: map[uint32]uint64{},
@@ -168,11 +177,15 @@ func (r *room) start() error {
 	}
 	r.match = m
 	r.h.desyncs.Store(0)
-	start := &Msg{Type: MsgStart, Seed: seed, Roster: roster}
+	start := &Msg{Type: MsgStart, Seed: seed, Roster: roster, Cfg: r.cfg}
 	for _, p := range r.peers {
 		r.send(p, start)
 	}
-	r.ticker = time.NewTicker(r.h.cfg.TickInterval)
+	every := r.h.cfg.TickInterval
+	if every <= 0 {
+		every = time.Second / time.Duration(r.cfg.Rate())
+	}
+	r.ticker = time.NewTicker(every)
 	r.publish()
 	return nil
 }
