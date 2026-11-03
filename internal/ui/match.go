@@ -137,7 +137,8 @@ func (m *match) drawOverlay(a *App, f *render.Frame, top int) {
 		centerText(f, mid-16, fmt.Sprintf("RONDA %d", s.Round), white, true)
 		centerScaled(f, mid-6, fmt.Sprint(n), pulse(accent, a.now), 2+int(frac*3))
 		if s.Round == 1 {
-			centerText(f, mid+16, "FLECHAS: GIRAR   ESPACIO: IMPULSO   J: SALTO", white, false)
+			centerText(f, mid+14, "FLECHAS: GIRAR", white, false)
+			centerText(f, mid+20, "ESPACIO: IMPULSO   J: SALTO", white, false)
 		}
 	case sim.Running:
 		if !s.Players[a.client.You()].Alive {
