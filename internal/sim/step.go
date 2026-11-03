@@ -77,7 +77,14 @@ func (s *State) leave(id uint8, out []Event) []Event {
 
 func (s *State) applyInputs(inputs []Input, out []Event) []Event {
 	for _, in := range inputs {
-		if in.Player >= s.Count || !s.Players[in.Player].Alive {
+		if in.Player >= s.Count {
+			continue
+		}
+		if in.Action == Quit {
+			out = s.leave(in.Player, out)
+			continue
+		}
+		if !s.Players[in.Player].Alive {
 			continue
 		}
 		p := &s.Players[in.Player]
@@ -99,8 +106,6 @@ func (s *State) applyInputs(inputs []Input, out []Event) []Event {
 				p.JumpTicks, p.JumpCooldown = JumpDuration, JumpCooldown
 				out = append(out, Event{Kind: EvJump, Player: in.Player, X: p.X, Y: p.Y})
 			}
-		case Quit:
-			out = s.leave(in.Player, out)
 		}
 	}
 	return out

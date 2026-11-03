@@ -196,3 +196,12 @@ func TestDeterminism(t *testing.T) {
 		}
 	}
 }
+
+func TestQuitAfterCrashStillLeaves(t *testing.T) {
+	s := running(t, Player{X: W - 1, Y: 10, Dir: Right}, Player{X: 50, Y: 40, Dir: Left}, Player{X: 50, Y: 20, Dir: Left})
+	s.Step(nil, nil)
+	s.Step([]Input{{Player: 0, Action: Quit}}, nil)
+	if !s.Players[0].Left {
+		t.Fatal("a crashed player who quits must be marked Left")
+	}
+}
