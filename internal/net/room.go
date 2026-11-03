@@ -42,6 +42,8 @@ type match struct {
 	got    int // hashes received, for tests
 }
 
+var botNames = [...]string{"Neón", "Chispa", "Rayo", "Brasa", "Cometa", "Pulsar"}
+
 func (r *room) effectiveBots() int { return min(r.bots, sim.MaxPlayers-len(r.peers)) }
 
 func (r *room) roster() []Seat {
@@ -50,7 +52,7 @@ func (r *room) roster() []Seat {
 		seats = append(seats, Seat{Name: p.name})
 	}
 	for i := range r.effectiveBots() {
-		seats = append(seats, Seat{Name: fmt.Sprintf("Bot %d", i+1), Bot: true})
+		seats = append(seats, Seat{Name: botNames[i%len(botNames)], Bot: true})
 	}
 	return seats
 }

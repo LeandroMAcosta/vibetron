@@ -14,7 +14,7 @@ import (
 const (
 	Version  = 1
 	BasePort = 47470
-	MaxName  = 12
+	MaxName  = 10
 	maxFrame = 1 << 12
 )
 

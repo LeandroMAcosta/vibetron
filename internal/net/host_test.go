@@ -250,7 +250,7 @@ func TestNameIsCleanedAndTruncated(t *testing.T) {
 	h := newTestHost(t, 1)
 	c := dial(t, h, "  Ñandú\x07 con un nombre larguísimo  ")
 	m := await(t, c, MsgRoster, seats(2))
-	if got := m.Roster[0].Name; got != "Ñandú con un" {
+	if got := m.Roster[0].Name; got != "Ñandú con" {
 		t.Fatalf("name = %q", got)
 	}
 }
