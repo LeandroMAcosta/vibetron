@@ -145,7 +145,7 @@ func TestSparkPickupRefills(t *testing.T) {
 
 func TestCollapseWallsAndCrushes(t *testing.T) {
 	s := running(t, Player{X: 0, Y: 30, Dir: Down}, Player{X: 50, Y: 20, Dir: Up}, Player{X: 50, Y: 40, Dir: Down})
-	s.RunTicks = collapseAfter - 1
+	s.RunTicks = CollapseAfter - 1
 	evs := s.Step(nil, nil)
 	if s.Ring != 1 || !hasEvent(evs, EvCollapse, 1) || s.At(0, 0) != Wall || s.At(W-1, H-1) != Wall {
 		t.Fatal("expected first collapse ring")

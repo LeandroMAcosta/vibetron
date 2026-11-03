@@ -4,7 +4,7 @@ import "hash/fnv"
 
 // collapse closes the arena one ring at a time once a round drags on.
 func (s *State) collapse(out []Event) []Event {
-	if s.RunTicks < collapseAfter || (s.RunTicks-collapseAfter)%collapseEvery != 0 || s.Ring >= maxRing {
+	if s.RunTicks < CollapseAfter || (s.RunTicks-CollapseAfter)%CollapseEvery != 0 || s.Ring >= MaxRing {
 		return out
 	}
 	r := int16(s.Ring)

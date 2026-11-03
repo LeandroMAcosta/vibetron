@@ -13,9 +13,9 @@ const (
 
 	countdownTicks = 3 * TickRate
 	roundOverTicks = 2 * TickRate
-	collapseAfter  = 30 * TickRate
-	collapseEvery  = 2 * TickRate
-	maxRing        = 20
+	CollapseAfter  = 30 * TickRate
+	CollapseEvery  = 2 * TickRate
+	MaxRing        = 20
 	sparkEvery     = 5 * TickRate
 	maxSparks      = 3
 
